@@ -12,3 +12,6 @@ sequence_dotplot.py -f fasta.file -s1 1 -s2 0 -w 10 -t 50
 -s1 / -s2 sequence number in the file (if the same sequence use the same number)
 -w windo size of calulated aligement
 -t treshold of measured values in % of 100 corresponding aminoacids in sequence
+
+![alt text](https://github.com/dzyla/dotplot_protein/blob/master/dotplot.png
+)
