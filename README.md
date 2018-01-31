@@ -15,3 +15,6 @@ sequence_dotplot.py -f fasta.file -s1 1 -s2 0 -w 10 -t 50
 
 ![alt text](https://github.com/dzyla/dotplot_protein/blob/master/dotplot.png
 )
+
+![alt text](https://github.com/dzyla/dotplot_protein/blob/master/dotplot1.png
+)
