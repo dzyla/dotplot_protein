@@ -4,6 +4,9 @@ Script for creating a dotplot
 Requires matplotlib, numpy, biopython, pandas and tqdm.
 It scores the sequences with blosum62 matrix and shows the dotplot above some threshold. Unfortunately, it is not the fastest script and for long sequences (~2000 aa) it takes even 30 min with window size of 20 aa. Small sequences work quite well (1 - 10 s) dependingon the word size.
 
+UPDATE1:
+- update of the script so now it runs ~100 faster or even more for longer sequences
+
 How to use the script: 
 
 sequence_dotplot.py -f fasta.file -s1 1 -s2 0 -w 10 -t 50
