@@ -1,11 +1,9 @@
 import sys
 import time
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
-from tqdm import tqdm
 
 
 def check_arg():
@@ -59,13 +57,16 @@ def blosum62():
     blosum62_matrix = pd.read_csv('blosum62.txt')
     blosum62_matrix = pd.DataFrame.from_records(blosum62_matrix)
     blosum62_matrix.set_index('Name', inplace=True)
-    return blosum62_matrix
 
+    aa_list = ['A', 'R', 'N', 'D', 'C', 'Q', 'E', 'G', 'H', 'I', 'L', 'K', 'M', 'F', 'P', 'S', 'T', 'W', 'Y', 'V', 'B',
+               'Z', 'X', '*']
 
-def align_value(blos_matrix, aa1, aa2):
-    aa1 = str(aa1)
-    aa2 = str(aa2)
-    return blos_matrix.loc[aa1, aa2]
+    blosum_list_ = {}
+    for A in aa_list:
+        for B in aa_list:
+            blosum_list_[str(A + B)] = blosum62_matrix.loc[A, B]
+
+    return blosum_list_
 
 
 def get_sequence(file, seq_num1, seq_num2):
@@ -83,6 +84,7 @@ def get_sequence(file, seq_num1, seq_num2):
         exit(1)
     return sequence1, sequence2, name1, name2
 
+
 def dot_plot_range(seq1, seq2, blos_matrix, ww, threshold):
     time1 = time.time()
     matrix = np.zeros((len(seq1), len(seq2)), np.float)
@@ -95,36 +97,57 @@ def dot_plot_range(seq1, seq2, blos_matrix, ww, threshold):
     start_seq2 = -ww1
     end_seq2 = len(seq2) - ww2 + 1
 
-    # count = 0
-    # old code without tqdm
-    # for i,a in enumerate(np.arange(start_seq1,end_seq1,1)):
-    #     if end_seq1 > 100:
-    #         if int((i/(end_seq1-start_seq1)))%5 == 0 and count > 0:
-    #             print(str(int(count/end_seq1))+' / 100%')
+    # generate sequence fragments with the size of the search window
+    for a in np.arange(start_seq1, end_seq1, 1):
+        for k in np.arange(ww1, ww2, 1):
+            if k == ww1:
+                seq_window_a = seq1[int(a + k)]
+            else:
+                seq_window_a += seq1[int(a + k)]
 
-    #        print(int(i/(end_seq1-start_seq1)*100))
+        if a == start_seq1:
+            sequence_array_a = np.expand_dims(np.array(seq_window_a), axis=0)
+        else:
+            sequence_array_a = np.concatenate((sequence_array_a, np.expand_dims(np.array(seq_window_a), axis=0)),
+                                              axis=0)
 
-    for a in tqdm(np.arange(start_seq1, end_seq1, 1)):
-        for b in np.arange(start_seq2, end_seq2):
+    for b in np.arange(start_seq2, end_seq2, 1):
+        for k in np.arange(ww1, ww2, 1):
+            if k == ww1:
+                seq_window_b = seq2[int(b + k)]
+            else:
+                seq_window_b += seq2[int(b + k)]
+
+        if b == start_seq2:
+            sequence_array_b = np.expand_dims(np.array(seq_window_b), axis=0)
+        else:
+            sequence_array_b = np.concatenate((sequence_array_b, np.expand_dims(np.array(seq_window_b), axis=0)),
+                                              axis=0)
+
+    # calculate the scores
+    for n, seqA in enumerate(sequence_array_a):
+        for m, seqB in enumerate(sequence_array_b):
             seq = 0
             total = 0
-            for k in np.arange(ww1, ww2, 1):
-                seq += align_value(blos_matrix, (seq1[int(a + k)]), (seq2[int(b + k)]))
-                total += align_value(blos_matrix, (seq1[int(a + k)]), (seq1[int(a + k)]))
+            for pos, aa in enumerate(seqA):
+                seq += blos_matrix[str(aa + seqB[pos])]
+                total += blos_matrix[str(aa + aa)]
             if threshold > seq / total * 100:
                 seq = 0
-            matrix[int(a), int(b)] = seq/total*100
-    time2 = time.time()
-    print('done in: ' + str(round(time2 - time1, 2)) + ' s')
+
+            matrix[int(n - ww1), int(m - ww1)] = seq / total * 100
+
+    print('Done in {} s'.format(time.time() - time1))
     return matrix
 
 
-def plot(matrix, name1, name2,ww,tres):
+def plot(matrix, name1, name2, ww, tres):
     plt.figure(figsize=(10, 10))
     plt.imshow(matrix, cmap='hot', interpolation='nearest')
     plt.xlabel(name1)
     plt.ylabel(name2)
-    plt.title('Dotplot of:\n\n' + name1 + '\n' + name2+'\n\n with window size: '+str(ww)+' and threshold '+str(tres))
+    plt.title(
+        'Dotplot of:\n\n' + name1 + '\n' + name2 + '\n\n with window size: ' + str(ww) + ' and threshold ' + str(tres))
     legend = plt.colorbar(fraction=0.046, pad=0.04)
     legend.set_label('% of identity')
     plt.savefig('dotplot.png')
@@ -136,5 +159,5 @@ file, seq1_num, seq2_num, ww, tres = check_arg()
 
 # do the magic
 seq1, seq2, name1, name2 = get_sequence(file, seq1_num, seq2_num)
-blosum_matrix = blosum62()
-plot(dot_plot_range(seq1, seq2, blosum_matrix, ww, tres), name1, name2,ww,tres)
+blosum_list = blosum62()
+plot(dot_plot_range(seq1, seq2, blosum_list, ww, tres), name1, name2, ww, tres)
